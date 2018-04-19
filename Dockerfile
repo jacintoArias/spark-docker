@@ -26,14 +26,26 @@ COPY spark-env.sh $SPARK_HOME/conf/spark-env.sh
 ENV PATH=$PATH:$SPARK_HOME/bin
 
 # Ports
-EXPOSE 6066 7077 8080 8081
+EXPOSE 6066 7077 8080 8081 4040
 
 # Copy start script
 COPY start-spark /opt/util/bin/start-spark
+COPY prepare-env.sh /opt/util/bin/prepare-env
 
 # Fix environment for other users
 RUN echo "export SPARK_HOME=$SPARK_HOME" >> /etc/bash.bashrc \
   && echo 'export PATH=$PATH:$SPARK_HOME/bin'>> /etc/bash.bashrc
+
+RUN apt-get update \ 
+    && apt-get install -y vim
+
+RUN adduser --disabled-password --gecos '' spark 
+
+RUN mkdir -p /home/spark \
+    && chown -R spark /home/spark \
+    && chmod -R 700 /home/spark
+
+VOLUME /home/spark
 
 # Add deprecated commands
 RUN echo '#!/usr/bin/env bash' > /usr/bin/master \
@@ -41,4 +53,5 @@ RUN echo '#!/usr/bin/env bash' > /usr/bin/master \
   && chmod +x /usr/bin/master \
   && echo '#!/usr/bin/env bash' > /usr/bin/worker \
   && echo 'start-spark worker $1' >> /usr/bin/worker \
-  && chmod +x /usr/bin/worker
+  && chmod +x /usr/bin/worker \
+  && chmod +x /opt/util/bin/prepare-env 
