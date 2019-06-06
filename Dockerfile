@@ -2,7 +2,7 @@ FROM singularities/hadoop:2.8
 MAINTAINER Singularities
 
 # Version
-ENV SPARK_VERSION=2.2.1
+ENV SPARK_VERSION=2.4.3
 
 # Set home
 ENV SPARK_HOME=/usr/local/spark-$SPARK_VERSION
@@ -22,36 +22,38 @@ RUN mkdir -p "${SPARK_HOME}" \
   && curl -sSL https://mirrors.ocf.berkeley.edu/$DOWNLOAD_PATH | \
     tar -xz -C $SPARK_HOME --strip-components 1 \
   && rm -rf $ARCHIVE
-COPY spark-env.sh $SPARK_HOME/conf/spark-env.sh
-ENV PATH=$PATH:$SPARK_HOME/bin
 
-# Ports
-EXPOSE 6066 7077 8080 8081 4040
-
-# Copy start script
-COPY start-spark /opt/util/bin/start-spark
-COPY prepare-env.sh /opt/util/bin/prepare-env
-
-# Fix environment for other users
-RUN echo "export SPARK_HOME=$SPARK_HOME" >> /etc/bash.bashrc \
-  && echo 'export PATH=$PATH:$SPARK_HOME/bin'>> /etc/bash.bashrc
-
+# Install Additional software
 RUN apt-get update \ 
     && apt-get install -y vim
 
-RUN adduser --disabled-password --gecos '' spark 
+# Configure Spark
+COPY spark-env.sh $SPARK_HOME/conf/spark-env.sh
 
+# Copy startup scripts
+COPY start-spark /opt/util/bin/start-spark
+COPY start-interactive.sh /opt/util/bin/start-interactive
+
+# Configure user and environment
+RUN adduser --disabled-password --gecos '' spark 
 RUN mkdir -p /home/spark \
     && chown -R spark /home/spark \
     && chmod -R 700 /home/spark
 
-VOLUME /home/spark
+WORKDIR /home/spark
+
+ENV HDFS_USER=spark
+ENV PATH=$PATH:$SPARK_HOME/bin
+ENV SPARK_HOME=$SPARK_HOME 
 
 # Add deprecated commands
-RUN echo '#!/usr/bin/env bash' > /usr/bin/master \
-  && echo 'start-spark master' >> /usr/bin/master \
-  && chmod +x /usr/bin/master \
-  && echo '#!/usr/bin/env bash' > /usr/bin/worker \
-  && echo 'start-spark worker $1' >> /usr/bin/worker \
-  && chmod +x /usr/bin/worker \
-  && chmod +x /opt/util/bin/prepare-env 
+# RUN echo '#!/usr/bin/env bash' > /usr/bin/master \
+#   && echo 'start-spark master' >> /usr/bin/master \
+#   && chmod +x /usr/bin/master \
+#   && echo '#!/usr/bin/env bash' > /usr/bin/worker \
+#   && echo 'start-spark worker $1' >> /usr/bin/worker \
+#   && chmod +x /usr/bin/worker \
+#   && chmod +x /opt/util/bin/prepare-env 
+
+# Ports
+EXPOSE 7077 8080 8081 4040

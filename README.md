@@ -2,19 +2,11 @@
 
 An [Apache Spark](http://spark.apache.org/) container image. The image is meant to be used for creating an standalone cluster with multiple workers.
 
-- [`1.5` (Dockerfile)](https://github.com/SingularitiesCR/spark-docker/blob/1.5/Dockerfile)
-- [`1.6` (Dockerfile)](https://github.com/SingularitiesCR/spark-docker/blob/1.6/Dockerfile)
-- [`2.0` (Dockerfile)](https://github.com/SingularitiesCR/spark-docker/blob/2.0/Dockerfile)
-- [`2.1` (Dockerfile)](https://github.com/SingularitiesCR/spark-docker/blob/2.1/Dockerfile)
-- [`2.2` (Dockerfile)](https://github.com/SingularitiesCR/spark-docker/blob/2.2/Dockerfile)
+You can find it on dockerhub as `jacintoarias/spark-cluster` 
 
 ## Custom commands
 
 This image contains a script named `start-spark` (included in the PATH). This script is used to initialize the master and the workers.
-
-### HDFS user
-
-The custom commands require an HDFS user to be set. The user's name if read from the `HDFS_USER` environment variable and the user is automatically created by the commands.
 
 ### Starting a master
 
@@ -32,35 +24,33 @@ To start a worker run the following command:
 start-spark worker [MASTER]
 ```
 
-### Deprecated commands
-
-The commands `master` and `worker` from previous versions of the image are maintained for compatibility but should not be used.
-
-
 ## Creating a Cluster with Docker Compose
 
 The easiest way to create a standalone cluster with this image is by using [Docker Compose](https://docs.docker.com/compose). The following snippet can be used as a `docker-compose.yml` for a simple cluster:
 
 ```YAML
-version: "2"
+version: "3"
 
 services:
   master:
-    image: singularities/spark
+    image: jacintoarias/spark-cluster
     command: start-spark master
     hostname: master
     ports:
-      - "6066:6066"
       - "7070:7070"
       - "8080:8080"
+      - "4040:4040"
       - "50070:50070"
+    volumes:
+      - .:/home/spark
+
   worker:
-    image: singularities/spark
+    image: jacintoarias/spark-cluster
     command: start-spark worker master
     environment:
       SPARK_WORKER_CORES: 1
       SPARK_WORKER_MEMORY: 2g
-    links:
+    depends_on:
       - master
 ```
 
